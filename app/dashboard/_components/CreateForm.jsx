@@ -17,13 +17,18 @@ import { useUser } from '@clerk/nextjs'
 import { db } from '@/configs'
 import { JsonForms } from '@/configs/schema'
 import moment from 'moment'
+import { useRouter } from 'next/navigation'
+import { Loader2 } from 'lucide-react'
 
-const PROMPT=", On the basis of description please give form in json format with form title, form subheading with form having Form field, form name, placeholder name, and form label, fieldType, field required in Json format"
+const PROMPT=`You are a form generator. Based on the given description, return a JSON object with the following structure:\n\n{ "formTitle": "string", "formSubheading": "string", "fields": [ { "name": "string", "label": "string", "placeholder": "string", "fieldType": "string", "required": true | false, "options": [ { "value": "string", "label": "string", "disabled": true | false, "selected": true | false } ], "min": number, "max": number, "step": number, "defaultValue": "string|number", "accept": "string" } ] }`;
 
 function CreateForm() {
   const [userInput, setUserInput] = useState();
-  const [loading, setLoading] = useState();
+  const [loading, setLoading] = useState(false);
   const {user} = useUser()
+  const route = useRouter()
+
+
   const onCreateForm = async () =>{
     console.log(userInput);
     setLoading(true)
@@ -35,7 +40,10 @@ function CreateForm() {
             createdBy: user?.primaryEmailAddress?.emailAddress,
             createdAt: moment().format('DD/MM/yyyy')
         }).returning({id: JsonForms.id})
-        console.log("New Form ID:" + resp)
+        console.log("New Form ID:" + resp[0].id)
+        if(resp[0].id){
+            route.push('/edit_form/' + resp[0].id)
+        }
         setLoading(false)
     }
     setLoading(false)
@@ -52,9 +60,7 @@ function CreateForm() {
             <DialogClose asChild>
                 <Button variant="destructive">Cancel</Button>
             </DialogClose>
-            <DialogClose asChild>
-                <Button diabled={loading} onClick={onCreateForm}>Create</Button>
-            </DialogClose>
+                <Button diabled={loading} onClick={onCreateForm}>{loading?<Loader2 className="animate-spin"/>:'Create'}</Button>
         </div>
       </DialogDescription>
     </DialogHeader>
