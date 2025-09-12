@@ -1,14 +1,20 @@
 "use client"
 
-import React from 'react'
+import React, {useEffect} from 'react'
 import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { SignInButton, UserButton, useUser } from '@clerk/nextjs'
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 
 function Header() {
   const {user, isSignedIn} = useUser();
+  const path = usePathname()
+  useEffect(()=>{
+    console.log(path)
+  }, [])
   return (
+    !path.includes('aiform') &&
     <div className="p-3 border shadow-sm">
         <div className="flex items-center justify-between mx-4">
             <Image src={'/logo.svg'} width={175} height={175} alt="Logo"/>
