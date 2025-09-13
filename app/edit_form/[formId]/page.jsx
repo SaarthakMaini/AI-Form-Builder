@@ -12,6 +12,7 @@ import { toast } from 'sonner'
 import Controller from './_components/Controller'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
+import { RWebShare } from "react-web-share";
 
 
 function EditForm({params}) {
@@ -112,7 +113,16 @@ function EditForm({params}) {
       <Link href={`/aiform/${record.id}`} target="_blank">
       <Button className="flex gap-2"><SquareArrowOutUpRight className="h-5 w-5"/>Live Preview</Button>
       </Link>
-      <Button><Share className="flex gap-2"/>Share</Button>
+      <RWebShare
+        data={{
+          text: jsonForm?.formHeading + " , Build your form in seconds with AI Form Builder",
+          url: process.env.NEXT_PUBLIC_BASE_URL + '/aiform/' + record?.id,
+          title: jsonForm?.formTitle,
+        }}
+        onClick={() => console.log("shared successfully!")}
+      >
+        <Button size="sm" variant="outline" className="flex gap-2"><Share className='h-5 w-5'/>Share</Button>
+      </RWebShare>
       </div>
       </div>
   
@@ -138,8 +148,8 @@ function EditForm({params}) {
       />
     </div>
     <div className={`md:col-span-2 border rounded-lg p-5 flex justify-center ${selectedBackground || 'bg-white'}`}>
-      <div className="w-full max-w-[600px] max-h-[80vh] overflow-y-auto rounded-lg">
-        { record && <FormUi jsonForm={jsonForm} onFieldUpdate={onFieldUpdate} deleteField={(index) => deleteField(index)} selectedTheme={selectedTheme} selectedBackground={selectedBackground} selectedStyle={selectedStyle}/>}
+      <div className="w-full max-w-4xl max-h-[80vh] overflow-y-auto rounded-lg">
+        { record && <FormUi jsonForm={jsonForm} onFieldUpdate={onFieldUpdate} deleteField={(index) => deleteField(index)} selectedTheme={selectedTheme} selectedBackground={selectedBackground} selectedStyle={selectedStyle} formId={record.id} showSubmit={true}/>}
       </div>
     </div>
   </div>

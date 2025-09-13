@@ -19,7 +19,7 @@ function LiveAiForm({params}){
         setJsonForm(JSON.parse(result[0].jsonform))
         console.log(result)
     }
-    // Safe defaults
+
     const defaultStyle = { style: 'border-solid', width: 'border', color: 'border-gray-300', radius: 'rounded' }
     let parsedStyle = defaultStyle
     try {
@@ -28,17 +28,34 @@ function LiveAiForm({params}){
         parsedStyle = defaultStyle
     }
 
+    if (!record || !jsonForm) {
+        return (
+            <div className="min-h-screen w-full flex items-center justify-center">
+                <div className="text-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto mb-4"></div>
+                    <p>Loading form...</p>
+                </div>
+            </div>
+        )
+    }
+
     return (
         <div className={`min-h-screen w-full flex items-center justify-center px-4 sm:px-8 py-10 ${record?.background || 'bg-white'}`}>
-            <FormUi 
-                jsonForm={jsonForm}
-                onFieldUpdate={()=>{}}
-                deleteField={()=>{}}
-                selectedStyle={parsedStyle}
-                selectedTheme={record?.theme || 'light'}
-                editable={false}
-            />
+      <div className="flex justify-center w-full">
+        <div className="w-full max-w-3xl">
+          <FormUi
+            jsonForm={jsonForm}
+            onFieldUpdate={() => {}}
+            deleteField={() => {}}
+            selectedStyle={parsedStyle}
+            selectedTheme={record?.theme || 'light'}
+            editable={false}
+            showSubmit={true}
+            formId={record.id}
+          />
         </div>
+      </div>
+    </div>
     )
 }
 
