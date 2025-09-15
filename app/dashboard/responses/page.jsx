@@ -3,7 +3,7 @@ import React, { useEffect, useState } from "react";
 import { useUser } from "@clerk/nextjs";
 import { db } from "@/configs";
 import { JsonForms, userResponses } from "@/configs/schema";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, count } from "drizzle-orm";
 import FormListItemResp from "./_components/FormListItemResp";
 
 function Responses() {
@@ -21,25 +21,23 @@ function Responses() {
     try {
       const result = await db
         .select({
-          responseId: userResponses.id,
-          jsonResponse: userResponses.jsonResponse,
-          responseCreatedAt: userResponses.createdAt,
-          responseCreatedBy: userResponses.createdBy,
           formId: JsonForms.id,
           formTitle: JsonForms.jsonform,
           formCreatedBy: JsonForms.createdBy,
           formCreatedAt: JsonForms.createdAt,
           theme: JsonForms.theme,
           background: JsonForms.background,
-          style: JsonForms.style
+          style: JsonForms.style,
+          responseCount: count(userResponses.id)
         })
-        .from(userResponses)
-        .innerJoin(JsonForms, eq(userResponses.formRef, JsonForms.id))
+        .from(JsonForms)
+        .leftJoin(userResponses, eq(JsonForms.id, userResponses.formRef))
         .where(eq(JsonForms.createdBy, user?.primaryEmailAddress?.emailAddress))
-        .orderBy(desc(userResponses.id));
+        .groupBy(JsonForms.id)
+        .orderBy(desc(JsonForms.id));
       setFormList(result || []);
     } catch (err) {
-      console.error("Error fetching responses:", err);
+      console.error("Error fetching forms with response counts:", err);
       setFormList([]);
     } finally {
       setLoading(false);
@@ -55,17 +53,70 @@ function Responses() {
     }
   };
 
-  const parseJsonResponse = (jsonString) => {
+  const exportToCSV = async (formId, formTitle) => {
     try {
-      return jsonString ? JSON.parse(jsonString) : null;
-    } catch (err) {
-      console.error("Error parsing response JSON:", err);
-      return null;
-    }
-  };
+      const responses = await db
+        .select({
+          jsonResponse: userResponses.jsonResponse,
+          createdAt: userResponses.createdAt,
+          createdBy: userResponses.createdBy
+        })
+        .from(userResponses)
+        .where(eq(userResponses.formRef, formId));
 
-  const handleDeleteResponse = (responseId) => {
-    setFormList(prevList => prevList.filter(response => response.responseId !== responseId));
+      if (responses.length === 0) {
+        alert('No responses to export for this form');
+        return;
+      }
+
+      const csvData = [];
+      const headers = new Set();
+      
+      responses.forEach(response => {
+        try {
+          const data = JSON.parse(response.jsonResponse);
+          Object.keys(data).forEach(key => headers.add(key));
+        } catch (e) {
+          console.error('Error parsing response:', e);
+        }
+      });
+
+      headers.add('Response Date');
+      headers.add('Respondent');
+
+      csvData.push(Array.from(headers));
+
+      responses.forEach(response => {
+        try {
+          const data = JSON.parse(response.jsonResponse);
+          const row = Array.from(headers).map(header => {
+            if (header === 'Response Date') return response.createdAt;
+            if (header === 'Respondent') return response.createdBy || 'Anonymous';
+            return data[header] || '';
+          });
+          csvData.push(row);
+        } catch (e) {
+          console.error('Error parsing response:', e);
+        }
+      });
+
+      const csvContent = csvData.map(row => 
+        row.map(field => `"${String(field).replace(/"/g, '""')}"`).join(',')
+      ).join('\n');
+
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', `${formTitle.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_responses.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (error) {
+      console.error('Error exporting CSV:', error);
+      alert('Error exporting CSV');
+    }
   };
 
   if (loading) return <div className="p-10">Loading...</div>;
@@ -77,17 +128,17 @@ function Responses() {
       </h2>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
         {formList.length > 0 ? (
-          formList.map((response) => (
+          formList.map((form) => (
             <FormListItemResp
-              key={response.responseId}
-              responseRecord={response}
-              jsonForm={parseJsonForm(response.formTitle)}
-              jsonResponse={parseJsonResponse(response.jsonResponse)}
-              onDelete={handleDeleteResponse}
+              key={form.formId}
+              formRecord={form}
+              jsonForm={parseJsonForm(form.formTitle)}
+              responseCount={form.responseCount}
+              onExportCSV={exportToCSV}
             />
           ))
         ) : (
-          <p className="text-gray-500 mt-4">No responses found.</p>
+          <p className="text-gray-500 mt-4">No forms found.</p>
         )}
       </div>
     </div>
