@@ -21,10 +21,10 @@ function Header() {
             {
               isSignedIn?<div className="flex items-center gap-5">
                 <Link href={'/dashboard'}>
-                <Button variant="outline">Dashboard</Button>
+                <Button variant="outline" className='cursor-pointer'>Dashboard</Button>
                 </Link>
                 <UserButton/>
-              </div>:<SignInButton><Button>Get Started</Button></SignInButton>
+              </div>:<SignInButton><Button className='cursor-pointer'>Get Started</Button></SignInButton>
             }
         </div>
     </div>
